@@ -336,7 +336,6 @@ a { color: inherit; }
   height: 100%;
   object-fit: cover;
   opacity: 0.82;
-  filter: saturate(0.92) contrast(1.02);
   transition: transform 0.7s var(--ease), opacity 0.4s var(--ease);
 }
 
@@ -856,8 +855,7 @@ a { color: inherit; }
 
 [data-glow].is-lit.challenge-photo-thumb,
 .challenge-photo-thumb.is-lit {
-  border-color: rgba(245, 166, 35, 0.55);
-  box-shadow: 0 0 26px rgba(200, 80, 30, 0.32);
+  border-color: rgba(245, 166, 35, 0.62);
 }
 
 /* --------------------------------------------------------------------------
@@ -880,8 +878,8 @@ a { color: inherit; }
 }
 
 .glass-card.is-lit {
-  border-color: rgba(245, 166, 35, 0.45);
-  box-shadow: 0 0 24px rgba(200, 80, 30, 0.24);
+  border-color: rgba(245, 166, 35, 0.5);
+  background: linear-gradient(160deg, rgba(255, 227, 163, 0.07), rgba(255, 247, 230, 0.02));
 }
 
 .card-num {
@@ -965,20 +963,15 @@ a { color: inherit; }
   stroke-width: 2.6;
   stroke-linecap: round;
   stroke-linejoin: round;
-  filter: drop-shadow(0 0 7px rgba(245, 166, 35, 0.55));
 }
 
 .fm-strand--alt { stroke: rgba(200, 80, 30, 0.9); }
 .fm-main { stroke: rgba(255, 227, 163, 0.95); }
 
-.fm-node {
-  fill: #fff6de;
-  filter: drop-shadow(0 0 12px rgba(245, 166, 35, 0.95));
-}
+.fm-node { fill: #fff6de; }
 
 .fm-halo {
-  fill: rgba(245, 166, 35, 0.22);
-  filter: blur(6px);
+  fill: rgba(245, 166, 35, 0.2);
 }
 
 /* --------------------------------------------------------------------------
