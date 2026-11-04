@@ -218,7 +218,8 @@
 
     /* Đo trong hệ toạ độ bảng chưa biến đổi. */
     board.style.transform = 'none';
-    tiltEl.style.setProperty('--tilt', '0deg');
+    tiltEl.style.transform = 'rotateX(0deg)';
+    board.classList.add('is-measuring');
 
     var i;
     for (i = 0; i < frames.length; i++) {
@@ -268,6 +269,8 @@
       top += h;
     }
 
+    board.classList.remove('is-measuring');
+
     buildFlame();
     lastU = -1;
     dirty = true;
@@ -308,12 +311,14 @@
     d += ' L ' + pts[n - 1].x + ' ' + pts[n - 1].y;
 
     var track = D.getElementById('flame-track');
+    var halo = D.getElementById('flame-halo');
     var lit = D.getElementById('flame-lit');
     var grad = D.getElementById('flame-stroke');
 
     if (!track || !lit) { return; }
 
     track.setAttribute('d', d);
+    if (halo) { halo.setAttribute('d', d); }
     lit.setAttribute('d', d);
 
     if (grad) {
@@ -347,9 +352,14 @@
       return best;
     });
 
+    L.samples = samples;
     L.stops[0] = 0;
     L.stops[n - 1] = L.flameLen;
+    lit.style.strokeDasharray = L.flameLen + ' ' + L.flameLen;
+    if (halo) { halo.style.strokeDasharray = L.flameLen + ' ' + L.flameLen; }
     lastU = -1;
+    lastK = -1;
+    setFlameWidth(1);
   }
 
   function updateFlame(u) {
@@ -364,24 +374,38 @@
     var len = L.stops[i] + (L.stops[i + 1] - L.stops[i]) * t;
 
     var lit = D.getElementById('flame-lit');
+    var halo = D.getElementById('flame-halo');
     var head = D.getElementById('flame-head');
     var core = D.getElementById('flame-core');
-    var track = D.getElementById('flame-track');
 
-    lit.style.strokeDasharray = L.flameLen + ' ' + L.flameLen;
-    lit.style.strokeDashoffset = L.flameLen - len;
+    var off = (L.flameLen - len).toFixed(1);
+    lit.style.strokeDashoffset = off;
+    if (halo) { halo.style.strokeDashoffset = off; }
 
-    if (track && head) {
-      var pt = track.getPointAtLength(len);
-      head.setAttribute('cx', pt.x);
-      head.setAttribute('cy', pt.y);
-      head.style.opacity = len > 4 ? '1' : '0.35';
-      if (core) {
-        core.setAttribute('cx', pt.x);
-        core.setAttribute('cy', pt.y);
-        core.style.opacity = len > 4 ? '1' : '0.35';
-      }
+    var pt = sampleAt(len);
+    head.setAttribute('cx', pt.x.toFixed(1));
+    head.setAttribute('cy', pt.y.toFixed(1));
+    head.style.opacity = len > 4 ? '1' : '0.35';
+    if (core) {
+      core.setAttribute('cx', pt.x.toFixed(1));
+      core.setAttribute('cy', pt.y.toFixed(1));
+      core.style.opacity = len > 4 ? '1' : '0.35';
     }
+  }
+
+  function sampleAt(len) {
+    var s = L.samples;
+    if (!s || !s.length) { return { x: 0, y: 0 }; }
+    var lo = 0;
+    var hi = s.length - 1;
+    while (hi - lo > 1) {
+      var mid = (lo + hi) >> 1;
+      if (s[mid].l < len) { lo = mid; } else { hi = mid; }
+    }
+    var a = s[lo];
+    var b = s[hi];
+    var t = b.l > a.l ? (len - a.l) / (b.l - a.l) : 0;
+    return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
   }
 
   /* ------------------------------------------------------------- frame UI */
@@ -412,6 +436,31 @@
       }
     }
 
+    if (idx >= 0) {
+      W.setTimeout(function () { warmNext(idx); }, 900);
+    }
+  }
+
+  var warmed = {};
+
+  function warmScene(idx) {
+    if (warmed[idx] || !L.scenes[idx]) { return; }
+    warmed[idx] = true;
+    var imgs = L.scenes[idx].body.querySelectorAll('img');
+    for (var i = 0; i < imgs.length; i++) {
+      var src = imgs[i].getAttribute('src');
+      if (!src) { continue; }
+      var img = new Image();
+      img.decoding = 'async';
+      img.src = src;
+      if (img.decode) { img.decode().catch(function () {}); }
+    }
+  }
+
+  /* Nạp và giải mã trước ảnh của cảnh kế, để lúc chuyển cảnh không bị khựng. */
+  function warmNext(idx) {
+    warmScene(idx + 1);
+    warmScene(idx + 2);
   }
 
   function applyPan(idx, pan) {
@@ -434,15 +483,41 @@
     }
   }
 
+  var lastTilt = -1;
+  var lastK = -1;
+
+  function setFlameWidth(k) {
+    var w = 2.4 / k;
+    var track = D.getElementById('flame-track');
+    var halo = D.getElementById('flame-halo');
+    var lit = D.getElementById('flame-lit');
+    var head = D.getElementById('flame-head');
+    var core = D.getElementById('flame-core');
+    if (track) { track.setAttribute('stroke-width', (w * 0.75).toFixed(2)); }
+    if (halo) { halo.setAttribute('stroke-width', (w * 3.6).toFixed(2)); }
+    if (lit) { lit.setAttribute('stroke-width', (w * 1.7).toFixed(2)); }
+    if (head) { head.setAttribute('r', (w * 5.2).toFixed(2)); }
+    if (core) { core.setAttribute('r', (w * 1.6).toFixed(2)); }
+  }
+
   function applyCam(c) {
     var k = c.k;
     var round = Math.abs(k - 1) < 0.0006;
     var tx = round ? Math.round(c.tx) : Math.round(c.tx * 10) / 10;
     var ty = round ? Math.round(c.ty) : Math.round(c.ty * 10) / 10;
+
     board.style.transform =
       'translate3d(' + tx + 'px, ' + ty + 'px, 0) scale(' + (Math.round(k * 10000) / 10000) + ')';
-    board.style.setProperty('--flame-w', (2.4 / k).toFixed(3));
-    tiltEl.style.setProperty('--tilt', (Math.round(c.tilt * 100) / 100) + 'deg');
+
+    if (c.tilt !== lastTilt) {
+      lastTilt = c.tilt;
+      tiltEl.style.transform = 'rotateX(' + (Math.round(c.tilt * 100) / 100) + 'deg)';
+    }
+
+    if (Math.abs(k - lastK) > 0.04) {
+      lastK = k;
+      setFlameWidth(k);
+    }
   }
 
   /* ---------------------------------------------------------------- render */
@@ -465,7 +540,10 @@
     updateFlame(st.u);
 
     var cam = st.cam;
-    if (st.i === 1 && !mapStarted && Math.abs(cam.k - 1) < 0.002) { startMap(); }
+    if (st.i === 1 && !mapStarted && Math.abs(cam.k - 1) < 0.002) {
+      mapStarted = true;
+      W.setTimeout(startMap, 700);
+    }
     if (tween) {
       var t = clamp((now - tween.t0) / tween.dur, 0, 1);
       cam = lerpCam(tween.from, cam, easeInOut(t));
@@ -602,8 +680,6 @@
   }
 
   function startMap() {
-    if (mapStarted) { return; }
-    mapStarted = true;
     if (typeof W.initOriginMap === 'function') {
       try { W.initOriginMap(); } catch (err) { /* bản đồ không chặn nội dung */ }
     }
@@ -688,6 +764,12 @@
 
     render(performance.now());
     rafId = W.requestAnimationFrame(tick);
+
+    /* Giải mã trước ảnh của hai cảnh kế trong lúc người xem còn ở cảnh đầu. */
+    W.setTimeout(function () {
+      warmScene(1);
+      warmScene(2);
+    }, 2500);
 
     /* Trình duyệt tự nhảy tới #id sau khi tải; chỉnh lại đúng điểm đọc. */
     function reanchor() {
