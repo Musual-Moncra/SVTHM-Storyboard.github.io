@@ -1,20 +1,25 @@
-/* Bản đồ Leaflet của làng nghề. Chỉ khởi tạo khi cảnh 01 được mở.
+/* Bản đồ Leaflet của làng nghề. Chỉ khởi tạo khi khung cảnh 01 đã phóng xong.
    Con lăn chuột phải cuộn trang, không được zoom bản đồ. */
 
 (function () {
   'use strict';
 
-  var initialized = false;
+  var map = null;
+
+  window.refreshOriginMap = function () {
+    if (!map) { return; }
+    map.invalidateSize({ pan: false });
+  };
 
   window.initOriginMap = function () {
-    if (initialized) { return; }
+    if (map) { return; }
     var element = document.getElementById('origin-leaflet-map');
     if (!element || !window.L) { return; }
-    initialized = true;
 
     var center = [11.0309829, 106.565394];
     var mapBounds = L.latLngBounds([11.018, 106.552], [11.044, 106.579]);
-    var map = L.map(element, {
+
+    map = L.map(element, {
       center: center,
       zoom: 16,
       minZoom: 15,
@@ -33,6 +38,7 @@
       minZoom: 15,
       maxZoom: 17,
       noWrap: true,
+      keepBuffer: 3,
       attribution: 'Imagery &copy; <a href="https://www.esri.com/en-us/legal/terms/web-site-service">Esri</a>, DigitalGlobe, GeoEye, i-cubed, USDA FSA, USGS, AEX, Getmapping, Aerogrid, IGN, IGP, swisstopo, and the GIS User Community.'
     }).addTo(map);
 
@@ -67,10 +73,13 @@
     }).addTo(map);
 
     map.setMaxBounds(mapBounds);
-    map.whenReady(function () { map.invalidateSize({ pan: false }); });
 
-    window.addEventListener('resize', function () {
-      map.invalidateSize({ pan: false });
-    });
+    var sync = function () { map.invalidateSize({ pan: false }); };
+    map.whenReady(sync);
+    window.requestAnimationFrame(sync);
+    window.setTimeout(sync, 300);
+    window.setTimeout(sync, 900);
+
+    window.addEventListener('resize', sync);
   };
 }());

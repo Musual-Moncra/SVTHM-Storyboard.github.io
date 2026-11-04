@@ -12,8 +12,6 @@
 
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
 
-  <script>document.documentElement.classList.add('js');</script>
-
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Space+Grotesk:wght@400;500;600;700&display=swap">
@@ -36,6 +34,7 @@
       <a href="#challenge">Câu Chuyện</a>
       <a href="#core">Sứ Mệnh</a>
       <a href="#evolution">Về chúng tôi</a>
+      <a href="#hero">Giới thiệu</a>
     </nav>
 
     <div class="header-actions">
@@ -68,15 +67,17 @@
                 <stop offset="0.55" stop-color="#f5a623"/>
                 <stop offset="1" stop-color="#ffe3a3"/>
               </linearGradient>
-              <radialGradient id="flame-head" cx="0.5" cy="0.5" r="0.5">
+              <radialGradient id="flame-head-grad" cx="0.5" cy="0.5" r="0.5">
                 <stop offset="0" stop-color="#fff6de" stop-opacity="1"/>
                 <stop offset="0.35" stop-color="#ffe3a3" stop-opacity="0.95"/>
                 <stop offset="0.7" stop-color="#f5a623" stop-opacity="0.45"/>
                 <stop offset="1" stop-color="#c8501e" stop-opacity="0"/>
               </radialGradient>
             </defs>
-            <g id="flame-segments"></g>
-            <circle class="flame-head" id="flame-head" cx="0" cy="0" r="26" fill="url(#flame-head)"/>
+            <path class="flame-track" id="flame-track" d=""/>
+            <path class="flame-lit" id="flame-lit" d=""/>
+            <circle class="flame-head" id="flame-head" cx="0" cy="0" r="26" fill="url(#flame-head-grad)"/>
+            <circle class="flame-core" id="flame-core" cx="0" cy="0" r="6"/>
           </svg>
 
           <!-- 00 · HERO -->
@@ -260,12 +261,13 @@
                   <figcaption>Chuyến đi thực tế của nhóm sinh viên và những người đang tiếp nối nghề bánh tráng.</figcaption>
                 </figure>
 
-                <div class="mission-split" aria-hidden="true">
-                  <svg viewBox="0 0 900 96" preserveAspectRatio="none" focusable="false">
-                    <path d="M0 26 H 330 C 372 26 372 70 414 70 H 448" />
-                    <path d="M0 70 H 330 C 372 70 372 26 414 26 H 448" />
-                    <circle cx="452" cy="48" r="5" />
-                    <path d="M452 48 H 900" />
+                <div class="flame-moment flame-moment--split" data-glow aria-hidden="true">
+                  <svg viewBox="0 0 900 300" preserveAspectRatio="none" focusable="false">
+                    <path class="fm-strand" d="M0 150 H 235 C 330 150 340 46 450 46 H 545 C 660 46 670 150 760 150" />
+                    <path class="fm-strand fm-strand--alt" d="M0 150 H 235 C 330 150 340 254 450 254 H 545 C 660 254 670 150 760 150" />
+                    <circle class="fm-node" cx="760" cy="150" r="11" />
+                    <circle class="fm-halo" cx="760" cy="150" r="34" />
+                    <path class="fm-main" d="M760 150 H 900" />
                   </svg>
                 </div>
 
@@ -305,15 +307,16 @@
                   <p class="story-turn">Với tinh thần Gen “Ziệt”, người trẻ không chỉ đi tìm cơ hội. Chúng tôi cũng có thể tạo ra cơ hội bằng kiến thức, kỹ năng và sức sáng tạo của mình — cùng làng nghề mở thêm những lối đi mới.</p>
                 </div>
 
-                <div class="team-braid" aria-hidden="true">
-                  <svg viewBox="0 0 900 86" preserveAspectRatio="none" focusable="false">
-                    <path d="M0 8 C 220 8 300 43 452 43" />
-                    <path d="M0 26 C 230 26 320 43 452 43" />
-                    <path d="M0 43 H 452" />
-                    <path d="M0 60 C 230 60 320 43 452 43" />
-                    <path d="M0 78 C 220 78 300 43 452 43" />
-                    <circle cx="452" cy="43" r="4.5" />
-                    <path d="M452 43 H 900" />
+                <div class="flame-moment flame-moment--braid" data-glow aria-hidden="true">
+                  <svg viewBox="0 0 900 300" preserveAspectRatio="none" focusable="false">
+                    <path class="fm-strand" d="M0 34 C 210 34 300 150 445 150" />
+                    <path class="fm-strand fm-strand--alt" d="M0 92 C 230 92 315 150 445 150" />
+                    <path class="fm-strand" d="M0 150 H 445" />
+                    <path class="fm-strand fm-strand--alt" d="M0 208 C 230 208 315 150 445 150" />
+                    <path class="fm-strand" d="M0 266 C 210 266 300 150 445 150" />
+                    <circle class="fm-node" cx="452" cy="150" r="11" />
+                    <circle class="fm-halo" cx="452" cy="150" r="34" />
+                    <path class="fm-main" d="M452 150 H 900" />
                   </svg>
                 </div>
 

@@ -248,32 +248,41 @@ a { color: inherit; }
   width: 100%;
   height: 100%;
   overflow: visible;
-  z-index: 3;
+  z-index: 2;
   pointer-events: none;
 }
 
 .flame-track,
 .flame-lit {
   fill: none;
-  stroke-width: var(--flame-w, 3);
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
+/* vệt nền mờ: luôn hiện, chạy liền qua cả 6 khung */
 .flame-track {
-  stroke: rgba(200, 80, 30, 0.55);
-  filter: drop-shadow(0 0 3px rgba(200, 80, 30, 0.45));
+  stroke: rgba(245, 166, 35, 0.26);
+  stroke-width: calc(var(--flame-w, 3) * 0.75px);
+  filter: drop-shadow(0 0 calc(var(--flame-w, 3) * 1px) rgba(200, 80, 30, 0.45));
 }
 
 .flame-lit {
   stroke: url(#flame-stroke);
-  stroke-width: 3;
-  filter: drop-shadow(0 0 5px rgba(245, 166, 35, 0.65));
+  stroke-width: calc(var(--flame-w, 3) * 1.7px);
+  filter:
+    drop-shadow(0 0 calc(var(--flame-w, 3) * 1.2px) rgba(255, 227, 163, 0.85))
+    drop-shadow(0 0 calc(var(--flame-w, 3) * 3.4px) rgba(245, 166, 35, 0.55));
 }
 
 .flame-head {
-  r: var(--flame-r, 26px);
-  filter: drop-shadow(0 0 10px rgba(245, 166, 35, 0.85));
+  r: calc(var(--flame-w, 3) * 5px);
+  filter: drop-shadow(0 0 calc(var(--flame-w, 3) * 4px) rgba(245, 166, 35, 0.9));
+}
+
+.flame-core {
+  r: calc(var(--flame-w, 3) * 1.5px);
+  fill: #fff6de;
+  filter: drop-shadow(0 0 calc(var(--flame-w, 3) * 2px) rgba(255, 246, 222, 0.95));
 }
 
 /* --------------------------------------------------------------------------
@@ -367,8 +376,10 @@ a { color: inherit; }
   font-weight: 700;
   line-height: 1;
   letter-spacing: -0.04em;
-  color: transparent;
-  -webkit-text-stroke: 1.5px rgba(255, 227, 163, 0.55);
+  color: #ffe3a3;
+  text-shadow:
+    0 2px 4px rgba(4, 12, 8, 0.9),
+    0 0 26px rgba(4, 12, 8, 0.75);
   pointer-events: none;
 }
 
@@ -380,9 +391,13 @@ a { color: inherit; }
 .frame-window {
   position: absolute;
   inset: 0;
-  z-index: 2;
+  z-index: 3;
   overflow: hidden;
   border-radius: inherit;
+}
+
+.frame.is-active .frame-window {
+  background: var(--frame-bg);
 }
 
 .frame-body {
@@ -927,32 +942,45 @@ a { color: inherit; }
    Sợi lửa trong khung (tách – nhập, bện)
    -------------------------------------------------------------------------- */
 
-.mission-split,
-.team-braid {
-  margin: 12px 0 4px;
-  height: 74px;
+.flame-moment {
+  position: relative;
+  margin: 30px 0 18px;
+  height: 280px;
+  opacity: 0.72;
+  transition: opacity 0.6s var(--ease);
 }
 
-.team-braid { margin-top: 26px; height: 66px; }
+.flame-moment.is-lit { opacity: 1; }
 
-.mission-split svg,
-.team-braid svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.flame-moment svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
 
-.mission-split path,
-.team-braid path {
+.fm-strand,
+.fm-main {
   fill: none;
-  stroke: rgba(200, 80, 30, 0.55);
-  stroke-width: 1.6;
-  filter: drop-shadow(0 0 4px rgba(245, 166, 35, 0.4));
+  stroke: rgba(245, 166, 35, 0.85);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 7px rgba(245, 166, 35, 0.55));
 }
 
-.mission-split circle,
-.team-braid circle {
-  fill: var(--flame-core);
-  filter: drop-shadow(0 0 8px var(--flame-mid));
+.fm-strand--alt { stroke: rgba(200, 80, 30, 0.9); }
+.fm-main { stroke: rgba(255, 227, 163, 0.95); }
+
+.fm-node {
+  fill: #fff6de;
+  filter: drop-shadow(0 0 12px rgba(245, 166, 35, 0.95));
 }
 
-.team-braid path:nth-child(2n) { stroke: rgba(245, 166, 35, 0.55); }
+.fm-halo {
+  fill: rgba(245, 166, 35, 0.22);
+  filter: blur(6px);
+}
 
 /* --------------------------------------------------------------------------
    Banner
@@ -1092,7 +1120,8 @@ main { position: relative; }
     gap: 6px;
     margin: 2px 0 0;
   }
-  .nav-chapters a { font-size: 12px; padding: 3px 0; }
+  .nav-chapters a { font-size: 11.5px; padding: 3px 0; letter-spacing: 0; }
+  .nav-chapters { gap: 2px; }
   .header-actions { margin-left: auto; }
   .language-control { height: 30px; padding: 0 4px 0 8px; }
   .language-control select { font-size: 11.5px; max-width: 86px; }
@@ -1138,7 +1167,21 @@ main { position: relative; }
   .footer-project-logo { height: 40px; }
   .footer-links { gap: 14px; }
 
+  .flame-moment { height: 190px; margin: 20px 0 12px; }
+  .fm-strand, .fm-main { stroke-width: 2; }
+
   .board-toggle { font-size: 12px; padding: 9px 13px 9px 11px; }
+}
+
+@media (max-width: 430px) {
+  .nav-chapters a { font-size: 10.5px; }
+  .frame-body { padding: 28px 18px 38px; }
+  .hero-title { font-size: 31px; }
+  .chapter-title { font-size: 24px; }
+  .challenge-photo-gallery { grid-template-columns: 1fr 1fr; }
+  .challenge-photo-thumb--tall { display: none; }
+  .challenge-photo-thumb img { height: 140px; }
+  .frame-num { font-size: 84px; left: 18px; }
 }
 
 @media (max-width: 900px) and (max-height: 720px) {
@@ -1150,16 +1193,6 @@ main { position: relative; }
   .hero-badge { font-size: 10px; margin-bottom: 8px; }
   .hero-scroll-cue { margin-top: 10px; }
   .chapter-title { font-size: 23px; }
-}
-
-@media (max-width: 430px) {
-  .frame-body { padding: 28px 18px 38px; }
-  .hero-title { font-size: 31px; }
-  .chapter-title { font-size: 24px; }
-  .challenge-photo-gallery { grid-template-columns: 1fr 1fr; }
-  .challenge-photo-thumb--tall { display: none; }
-  .challenge-photo-thumb img { height: 140px; }
-  .frame-num { font-size: 84px; left: 18px; }
 }
 
 /* --------------------------------------------------------------------------

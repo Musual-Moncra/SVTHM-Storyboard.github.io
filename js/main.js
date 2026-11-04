@@ -7,6 +7,8 @@
 (function () {
   'use strict';
 
+  document.documentElement.classList.add('js');
+
   var W = window;
   var D = document;
 
@@ -18,7 +20,6 @@
   var navbar = D.querySelector('.navbar');
   var progressBar = D.getElementById('scroll-progress-bar');
   var flameHead = D.getElementById('flame-head');
-  var flameGroup = D.getElementById('flame-segments');
   var heroStage = D.getElementById('hero-stage');
   var boardToggle = D.getElementById('board-toggle');
 
@@ -39,8 +40,7 @@
     boardW: 0,
     boardH: 0,
     timing: { entry: 0, holdA: 0, holdB: 0, exit: 0 },
-    scenes: [],
-    segments: []
+    scenes: []
   };
 
   var activeIndex = -2;
@@ -126,7 +126,7 @@
 
   function stateAt(y) {
     if (overview) {
-      return { cam: overviewCam(), i: -1, pan: 0, u: 5, ignite: 1 };
+      return { cam: overviewCam(), i: -1, pan: 0, u: Math.max(0, overviewAnchor), ignite: 1 };
     }
 
     var n = L.scenes.length;
@@ -197,7 +197,7 @@
     L.navH = navbar ? Math.round(navbar.getBoundingClientRect().height) : 76;
 
     var fw = single ? Math.min(vw - 32, 720) : Math.min(1080, vw - 96);
-    var fh = single ? vh - L.navH - 78 : Math.min(700, vh - L.navH - 56);
+    var fh = single ? vh - L.navH - 104 : Math.min(700, vh - L.navH - 56);
 
     L.frameW = Math.round(Math.max(280, fw));
     L.frameH = Math.round(Math.max(400, fh));
@@ -276,10 +276,46 @@
   /* ------------------------------------------------------------ flame path */
 
   function buildFlame() {
-    while (flameGroup.firstChild) { flameGroup.removeChild(flameGroup.firstChild); }
-    L.segments = [];
+    var n = L.scenes.length;
+    var pts = [];
+    var i;
 
+    for (i = 0; i < n; i++) {
+      pts.push({
+        x: L.scenes[i].x + L.frameW / 2,
+        y: L.scenes[i].y + L.frameH / 2
+      });
+    }
+
+    var radius = Math.round(L.frameH * 0.18);
+    var d = 'M ' + pts[0].x + ' ' + pts[0].y;
+
+    for (i = 1; i < n - 1; i++) {
+      var a = pts[i - 1];
+      var p = pts[i];
+      var b = pts[i + 1];
+      var d1x = p.x === a.x ? 0 : (p.x > a.x ? 1 : -1);
+      var d1y = p.y === a.y ? 0 : (p.y > a.y ? 1 : -1);
+      var d2x = b.x === p.x ? 0 : (b.x > p.x ? 1 : -1);
+      var d2y = b.y === p.y ? 0 : (b.y > p.y ? 1 : -1);
+      var l1 = Math.abs(p.x - a.x) + Math.abs(p.y - a.y);
+      var l2 = Math.abs(b.x - p.x) + Math.abs(b.y - p.y);
+      var rr = Math.min(radius, l1 / 2, l2 / 2);
+      d += ' L ' + (p.x - d1x * rr) + ' ' + (p.y - d1y * rr);
+      d += ' Q ' + p.x + ' ' + p.y + ' ' + (p.x + d2x * rr) + ' ' + (p.y + d2y * rr);
+    }
+
+    d += ' L ' + pts[n - 1].x + ' ' + pts[n - 1].y;
+
+    var track = D.getElementById('flame-track');
+    var lit = D.getElementById('flame-lit');
     var grad = D.getElementById('flame-stroke');
+
+    if (!track || !lit) { return; }
+
+    track.setAttribute('d', d);
+    lit.setAttribute('d', d);
+
     if (grad) {
       grad.setAttribute('gradientUnits', 'userSpaceOnUse');
       grad.setAttribute('x1', '0');
@@ -288,79 +324,64 @@
       grad.setAttribute('y2', String(L.boardH));
     }
 
-    for (var i = 0; i < frames.length - 1; i++) {
-      var a = L.scenes[i];
-      var b = L.scenes[i + 1];
-      var down = b.y > a.y + 1;
-      var right = b.x > a.x + 1;
-      var p1;
-      var p2;
+    L.flameLen = track.getTotalLength();
 
-      if (down) {
-        p1 = { x: a.x + L.frameW / 2, y: a.y + L.frameH };
-        p2 = { x: b.x + L.frameW / 2, y: b.y };
-      } else if (right) {
-        p1 = { x: a.x + L.frameW, y: a.y + L.frameH / 2 };
-        p2 = { x: b.x, y: b.y + L.frameH / 2 };
-      } else {
-        p1 = { x: a.x, y: a.y + L.frameH / 2 };
-        p2 = { x: b.x + L.frameW, y: b.y + L.frameH / 2 };
-      }
-
-      var d = 'M ' + p1.x + ' ' + p1.y + ' L ' + p2.x + ' ' + p2.y;
-      var len = Math.abs(p2.x - p1.x) + Math.abs(p2.y - p1.y);
-
-      var track = D.createElementNS(SVG_NS, 'path');
-      track.setAttribute('d', d);
-      track.setAttribute('class', 'flame-track');
-
-      var litPath = D.createElementNS(SVG_NS, 'path');
-      litPath.setAttribute('d', d);
-      litPath.setAttribute('class', 'flame-lit');
-      litPath.style.strokeDasharray = len + ' ' + len;
-      litPath.style.strokeDashoffset = len;
-
-      flameGroup.appendChild(track);
-      flameGroup.appendChild(litPath);
-
-      L.segments.push({ p1: p1, p2: p2, len: len, lit: litPath });
+    /* Mốc độ dài tại tâm từng khung, để ánh sáng tới đúng khung. */
+    var samples = [];
+    var steps = 480;
+    for (i = 0; i <= steps; i++) {
+      var sl = L.flameLen * i / steps;
+      var sp = track.getPointAtLength(sl);
+      samples.push({ l: sl, x: sp.x, y: sp.y });
     }
+
+    L.stops = pts.map(function (c) {
+      var best = 0;
+      var bd = Infinity;
+      for (var q = 0; q < samples.length; q++) {
+        var dx = samples[q].x - c.x;
+        var dy = samples[q].y - c.y;
+        var dd = dx * dx + dy * dy;
+        if (dd < bd) { bd = dd; best = samples[q].l; }
+      }
+      return best;
+    });
+
+    L.stops[0] = 0;
+    L.stops[n - 1] = L.flameLen;
+    lastU = -1;
   }
 
   function updateFlame(u) {
-    if (!L.segments.length) { return; }
+    if (!L.flameLen || !L.stops) { return; }
     if (Math.abs(u - lastU) < 0.0005) { return; }
     lastU = u;
 
-    var n = L.segments.length;
-    var total = 0;
-    var i;
-    for (i = 0; i < n; i++) { total += L.segments[i].len; }
+    var n = L.stops.length - 1;
+    var f = clamp(u, 0, n);
+    var i = Math.min(Math.floor(f), n - 1);
+    var t = f - i;
+    var len = L.stops[i] + (L.stops[i + 1] - L.stops[i]) * t;
 
-    var reveal = clamp(u / n, 0, 1) * total;
-    var acc = 0;
-    var headX = L.segments[0].p1.x;
-    var headY = L.segments[0].p1.y;
-    var placed = false;
+    var lit = D.getElementById('flame-lit');
+    var head = D.getElementById('flame-head');
+    var core = D.getElementById('flame-core');
+    var track = D.getElementById('flame-track');
 
-    for (i = 0; i < n; i++) {
-      var s = L.segments[i];
-      var local = clamp(reveal - acc, 0, s.len);
-      s.lit.style.strokeDashoffset = (s.len - local);
-      if (!placed) {
-        if (reveal <= acc + s.len || i === n - 1) {
-          var t = s.len ? clamp((reveal - acc) / s.len, 0, 1) : 0;
-          headX = s.p1.x + (s.p2.x - s.p1.x) * t;
-          headY = s.p1.y + (s.p2.y - s.p1.y) * t;
-          placed = true;
-        }
+    lit.style.strokeDasharray = L.flameLen + ' ' + L.flameLen;
+    lit.style.strokeDashoffset = L.flameLen - len;
+
+    if (track && head) {
+      var pt = track.getPointAtLength(len);
+      head.setAttribute('cx', pt.x);
+      head.setAttribute('cy', pt.y);
+      head.style.opacity = len > 4 ? '1' : '0.35';
+      if (core) {
+        core.setAttribute('cx', pt.x);
+        core.setAttribute('cy', pt.y);
+        core.style.opacity = len > 4 ? '1' : '0.35';
       }
-      acc += s.len;
     }
-
-    flameHead.setAttribute('cx', headX);
-    flameHead.setAttribute('cy', headY);
-    flameHead.style.opacity = reveal > 1 ? '1' : '0.55';
   }
 
   /* ------------------------------------------------------------- frame UI */
@@ -391,7 +412,6 @@
       }
     }
 
-    if (idx === 1) { startMap(); }
   }
 
   function applyPan(idx, pan) {
@@ -421,8 +441,7 @@
     var ty = round ? Math.round(c.ty) : Math.round(c.ty * 10) / 10;
     board.style.transform =
       'translate3d(' + tx + 'px, ' + ty + 'px, 0) scale(' + (Math.round(k * 10000) / 10000) + ')';
-    board.style.setProperty('--flame-w', (2.2 / k).toFixed(2));
-    board.style.setProperty('--flame-r', (11 / k).toFixed(2) + 'px');
+    board.style.setProperty('--flame-w', (2.4 / k).toFixed(3));
     tiltEl.style.setProperty('--tilt', (Math.round(c.tilt * 100) / 100) + 'deg');
   }
 
@@ -446,6 +465,7 @@
     updateFlame(st.u);
 
     var cam = st.cam;
+    if (st.i === 1 && !mapStarted && Math.abs(cam.k - 1) < 0.002) { startMap(); }
     if (tween) {
       var t = clamp((now - tween.t0) / tween.dur, 0, 1);
       cam = lerpCam(tween.from, cam, easeInOut(t));
@@ -575,12 +595,20 @@
 
   /* ------------------------------------------------------------------- map */
 
+  function refreshMap() {
+    if (typeof W.refreshOriginMap === 'function') {
+      try { W.refreshOriginMap(); } catch (err) { /* bản đồ không chặn nội dung */ }
+    }
+  }
+
   function startMap() {
     if (mapStarted) { return; }
     mapStarted = true;
     if (typeof W.initOriginMap === 'function') {
       try { W.initOriginMap(); } catch (err) { /* bản đồ không chặn nội dung */ }
     }
+    W.setTimeout(refreshMap, 260);
+    W.setTimeout(refreshMap, 700);
   }
 
   /* -------------------------------------------------------------- language */
@@ -619,6 +647,7 @@
 
   function onResize() {
     measure();
+    refreshMap();
     if (!moved) {
       var idx = sceneIndexFromHash();
       if (idx >= 0) { scrollToScene(idx, true); }
