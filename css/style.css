@@ -385,14 +385,8 @@ a { color: inherit; }
   contain: paint;
 }
 
-/* Khung không đang đọc: không vẽ nội dung, chỉ còn ảnh bìa. */
-.frame:not(.is-active) .frame-window {
-  visibility: hidden;
-}
-
-.board.is-measuring .frame-window {
-  visibility: visible !important;
-}
+/* Khung không đang đọc: vẫn nằm trong cây trợ năng và tìm được, chỉ không vẽ.
+   Ẩn bằng opacity để Ctrl+F, trình đọc màn hình và Google Translate vẫn thấy. */
 
 .frame.is-active .frame-window {
   background: var(--frame-bg);

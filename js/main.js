@@ -424,7 +424,6 @@
     if (prev && prev !== next) {
       prev.el.classList.remove('is-active');
       prev.el.classList.remove('is-lit');
-      prev.body.setAttribute('inert', '');
       prev.body.style.transform = 'translate3d(0px, 0px, 0px)';
       var pc = prev.el.querySelector('.frame-cover');
       if (pc) { pc.setAttribute('inert', ''); }
@@ -433,7 +432,6 @@
     if (next) {
       next.el.classList.add('is-active');
       next.el.classList.add('is-lit');
-      next.body.removeAttribute('inert');
       var nc = next.el.querySelector('.frame-cover');
       if (nc) { nc.setAttribute('inert', ''); }
     }
@@ -452,7 +450,6 @@
         var s2 = L.scenes[i];
         s2.el.classList.remove('is-active');
         s2.el.classList.remove('is-lit');
-        s2.body.setAttribute('inert', '');
         var c2 = s2.el.querySelector('.frame-cover');
         if (c2) { c2.removeAttribute('inert'); }
       }
@@ -470,12 +467,11 @@
     warmed[idx] = true;
     var imgs = L.scenes[idx].body.querySelectorAll('img');
     for (var i = 0; i < imgs.length; i++) {
-      var src = imgs[i].getAttribute('src');
-      if (!src) { continue; }
-      var img = new Image();
-      img.decoding = 'async';
-      img.src = src;
-      if (img.decode) { img.decode().catch(function () {}); }
+      var el = imgs[i];
+      if (!el.getAttribute('src') || el.getAttribute('data-warm') === '1') { continue; }
+      el.setAttribute('data-warm', '1');
+      el.loading = 'eager';
+      if (el.decode) { el.decode().catch(function () {}); }
     }
   }
 
@@ -686,6 +682,18 @@
       setOverview(!overview);
     });
   }
+
+  /* Tab vào nội dung của cảnh khác thì đưa camera tới cảnh đó. */
+  D.addEventListener('focusin', function (e) {
+    var frame = e.target.closest ? e.target.closest('.frame') : null;
+    if (!frame || !L.scenes.length) { return; }
+    for (var i = 0; i < L.scenes.length; i++) {
+      if (L.scenes[i].el === frame) {
+        if (i !== activeIndex) { scrollToScene(i); }
+        return;
+      }
+    }
+  });
 
   D.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && !overview) {
