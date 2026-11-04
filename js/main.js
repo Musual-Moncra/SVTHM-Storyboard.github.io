@@ -87,7 +87,7 @@
   function bridgeCam(i, j) {
     var a = L.scenes[i];
     var b = L.scenes[j];
-    var k = 0.58;
+    var k = 0.78;
     var cx = (a.x + b.x) / 2 + L.frameW / 2;
     var cy = (a.y + b.y) / 2 + L.frameH / 2;
     return { k: k, tx: L.vw / 2 - cx * k, ty: L.vh / 2 - cy * k, tilt: 6 };
