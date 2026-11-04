@@ -387,13 +387,13 @@ a { color: inherit; }
   contain: paint;
 }
 
-/* Khung không đang đọc: không dựng nội dung, chỉ còn ảnh bìa. */
+/* Khung không đang đọc: không vẽ nội dung, chỉ còn ảnh bìa. */
 .frame:not(.is-active) .frame-window {
-  content-visibility: hidden;
+  visibility: hidden;
 }
 
 .board.is-measuring .frame-window {
-  content-visibility: visible !important;
+  visibility: visible !important;
 }
 
 .frame.is-active .frame-window {

@@ -53,6 +53,7 @@
   var lastY = -1e9;
   var lastW = -1;
   var lastU = -1;
+  var lastProgY = -1e9;
   var moved = false;
   var mapStarted = false;
   var overviewAnchor = 0;
@@ -273,6 +274,9 @@
 
     buildFlame();
     lastU = -1;
+    lastCam = '';
+    lastPanIdx = -99;
+    lastGlowKey = '';
     dirty = true;
   }
 
@@ -412,27 +416,45 @@
 
   function setActive(idx) {
     if (idx === activeIndex) { return; }
+
+    var prev = activeIndex >= 0 && L.scenes[activeIndex] ? L.scenes[activeIndex] : null;
+    var next = idx >= 0 && L.scenes[idx] ? L.scenes[idx] : null;
     activeIndex = idx;
 
-    var coversLive = idx === -1;
+    if (prev && prev !== next) {
+      prev.el.classList.remove('is-active');
+      prev.el.classList.remove('is-lit');
+      prev.body.setAttribute('inert', '');
+      prev.body.style.transform = 'translate3d(0px, 0px, 0px)';
+      var pc = prev.el.querySelector('.frame-cover');
+      if (pc) { pc.setAttribute('inert', ''); }
+    }
 
-    for (var i = 0; i < L.scenes.length; i++) {
-      var s = L.scenes[i];
-      var on = i === idx;
-      s.el.classList.toggle('is-active', on);
-      s.el.classList.toggle('is-lit', on);
+    if (next) {
+      next.el.classList.add('is-active');
+      next.el.classList.add('is-lit');
+      next.body.removeAttribute('inert');
+      var nc = next.el.querySelector('.frame-cover');
+      if (nc) { nc.setAttribute('inert', ''); }
+    }
 
-      if (on) {
-        s.body.removeAttribute('inert');
-      } else {
-        s.body.setAttribute('inert', '');
-        s.body.style.transform = 'translate3d(0px, 0px, 0px)';
+    /* Từ toàn cảnh bước vào một cảnh: khóa lại các ảnh bìa. */
+    if (prev === null && idx >= 0) {
+      for (var k = 0; k < L.scenes.length; k++) {
+        var ck = L.scenes[k].el.querySelector('.frame-cover');
+        if (ck) { ck.setAttribute('inert', ''); }
       }
+    }
 
-      var cover = s.el.querySelector('.frame-cover');
-      if (cover) {
-        if (coversLive) { cover.removeAttribute('inert'); }
-        else { cover.setAttribute('inert', ''); }
+    /* Chế độ toàn cảnh: mọi ảnh bìa bấm được. */
+    if (idx === -1) {
+      for (var i = 0; i < L.scenes.length; i++) {
+        var s2 = L.scenes[i];
+        s2.el.classList.remove('is-active');
+        s2.el.classList.remove('is-lit');
+        s2.body.setAttribute('inert', '');
+        var c2 = s2.el.querySelector('.frame-cover');
+        if (c2) { c2.removeAttribute('inert'); }
       }
     }
 
@@ -463,14 +485,25 @@
     warmScene(idx + 2);
   }
 
+  var lastPanIdx = -99;
+  var lastPanVal = -1;
+
   function applyPan(idx, pan) {
     if (idx < 0 || !L.scenes[idx]) { return; }
+    if (idx === lastPanIdx && Math.abs(pan - lastPanVal) < 0.3) { return; }
+    lastPanIdx = idx;
+    lastPanVal = pan;
     var body = L.scenes[idx].body;
     body.style.transform = 'translate3d(0px, ' + (-Math.round(pan * 100) / 100) + 'px, 0px)';
   }
 
+  var lastGlowKey = '';
+
   function applyGlow(idx, pan) {
     if (idx < 0 || !L.scenes[idx]) { return; }
+    var gk = idx + '|' + Math.round(pan / 24);
+    if (gk === lastGlowKey) { return; }
+    lastGlowKey = gk;
     var s = L.scenes[idx];
     var top = pan + 30;
     var bottom = pan + L.frameH - 20;
@@ -500,14 +533,20 @@
     if (core) { core.setAttribute('r', (w * 1.6).toFixed(2)); }
   }
 
+  var lastCam = '';
+
   function applyCam(c) {
     var k = c.k;
     var round = Math.abs(k - 1) < 0.0006;
     var tx = round ? Math.round(c.tx) : Math.round(c.tx * 10) / 10;
     var ty = round ? Math.round(c.ty) : Math.round(c.ty * 10) / 10;
+    var sig = tx + '|' + ty + '|' + (Math.round(k * 10000) / 10000);
 
-    board.style.transform =
-      'translate3d(' + tx + 'px, ' + ty + 'px, 0) scale(' + (Math.round(k * 10000) / 10000) + ')';
+    if (sig !== lastCam) {
+      lastCam = sig;
+      board.style.transform =
+        'translate3d(' + tx + 'px, ' + ty + 'px, 0) scale(' + (Math.round(k * 10000) / 10000) + ')';
+    }
 
     if (c.tilt !== lastTilt) {
       lastTilt = c.tilt;
@@ -540,10 +579,7 @@
     updateFlame(st.u);
 
     var cam = st.cam;
-    if (st.i === 1 && !mapStarted && Math.abs(cam.k - 1) < 0.002) {
-      mapStarted = true;
-      W.setTimeout(startMap, 700);
-    }
+
     if (tween) {
       var t = clamp((now - tween.t0) / tween.dur, 0, 1);
       cam = lerpCam(tween.from, cam, easeInOut(t));
@@ -557,7 +593,8 @@
       boardEl.classList.toggle('is-overview', overview);
     }
 
-    if (progressBar) {
+    if (progressBar && Math.abs(y - lastProgY) > 2) {
+      lastProgY = y;
       var max = D.documentElement.scrollHeight - L.vh;
       var p = max > 0 ? clamp(y / max, 0, 1) : 0;
       progressBar.style.width = (p * 100).toFixed(2) + '%';
@@ -680,6 +717,8 @@
   }
 
   function startMap() {
+    if (mapStarted) { return; }
+    mapStarted = true;
     if (typeof W.initOriginMap === 'function') {
       try { W.initOriginMap(); } catch (err) { /* bản đồ không chặn nội dung */ }
     }
@@ -764,6 +803,9 @@
 
     render(performance.now());
     rafId = W.requestAnimationFrame(tick);
+
+    /* Bản đồ chỉ dựng một lần, lúc trang đã rảnh, để không khựng giữa lúc chuyển cảnh. */
+    W.setTimeout(startMap, 1200);
 
     /* Giải mã trước ảnh của hai cảnh kế trong lúc người xem còn ở cảnh đầu. */
     W.setTimeout(function () {
